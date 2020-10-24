@@ -5,7 +5,7 @@ from database import Base
 class Image(Base):
     __tablename__ = 'image'
     id = Column(Integer, primary_key=True)
-    name = Column(String(256), unique=True)
+    name = Column(String(256))
     path = Column(String(256), unique=True)
     tags = Column(String(512))
 

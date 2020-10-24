@@ -1,8 +1,9 @@
-from flask import Flask, request, render_template, send_from_directory, abort, json, make_response, Response, jsonify
+from flask import Flask, request, render_template, send_from_directory, abort, json, make_response, Response, jsonify, redirect
 import argparse
 from database import setup_db
 from models import Image
 import random
+import pathlib
 
 
 class ImageServer(object):
@@ -10,23 +11,44 @@ class ImageServer(object):
     # Prepare the server
     app = Flask(__name__)
     db = None
+    media_path = None
+    media_url = None
 
-    def __init__(self, host, port, db_uri):
+    def __init__(self, host, port, db_uri, media_path=None, media_url=None):
         # setup db
         db = setup_db(uri=db_uri)
+        if not media_path:
+            media_path = str(pathlib.Path().absolute()) + "/www"
+        if not media_url:
+            media_url = media_path
         # Start the server
         ImageServer.app.run(host=host, port=port)
 
     @staticmethod
+    def build_media_url(image):
+        return image.path.replace(ImageServer.media_path, ImageServer.media_url)
+
+    @staticmethod
     @app.route('/image/<string:id>', methods=['GET'])
     def get_image(id):
+        # Busquem la imatge
         res = Image.query.filter(Image.id == id).first()
         if not res:
             return ImageServer.get_404()
+
+        # Comprovem que podem donar aquesta imatge
         fullpath = res.path
-        resp = make_response(open(fullpath, 'rb').read())
-        resp.content_type = "image/jpeg"
-        return resp
+        if not fullpath.startswith(ImageServer.media_path):
+            return ImageServer.get_404()
+
+        # Construim la resposta. Lo unic que no volem donar es el full path
+        resp = {
+            'name': res.name,
+            'tags': res.tags,
+            'id': res.id,
+            'url': ImageServer.build_media_url(res)
+        }
+        return jsonify(resp)
 
     @staticmethod
     @app.route('/random_image', methods=['GET'])
