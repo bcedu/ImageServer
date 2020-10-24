@@ -11,18 +11,15 @@ def main(args):
 
 
 def process_dir(dir, cursor):
-    for _, subdirs, files in os.walk(dir):
-        for d in subdirs:
-            aux = os.path.abspath(os.path.join(dir, d))
-            process_dir(aux, cursor)
+    for root, subdirs, files in os.walk(dir):
         for f in files:
-            aux = os.path.abspath(os.path.join(dir, f))
+            aux = os.path.abspath(os.path.join(root, f))
             process_file(aux, f, cursor)
 
 
 def process_file(full_path, fname, cursor):
-    sqlite_select_query = """SELECT * from image where path = %s"""
-    cursor.execute(sqlite_select_query, full_path)
+    sqlite_select_query = """SELECT * from image where path = ?"""
+    cursor.execute(sqlite_select_query, (full_path,))
     records = cursor.fetchall()
     if not records:
         sqlite_insert_query = """INSERT INTO image (name, path, tags) VALUES (?,?,?)"""
