@@ -72,8 +72,9 @@ class ImageServer(object):
         res = Image.query.filter(Image.name == "404-not-found.jpg").first()
         return ImageServer.get_image(res.id)
 
+
 def main(args):
-    ImageServer(args.host, args.port, args.database)
+    ImageServer(args.host, args.port, args.database, media_path=args.media_path, media_url=args.media_url)
 
 
 if __name__ == "__main__":
@@ -81,5 +82,7 @@ if __name__ == "__main__":
     parser.add_argument("-ht", "--host", default="127.0.0.1", help="The hostname to listen on. Set this to '0.0.0.0' to have the server available externally as well. Defaults to '127.0.0.1'.")
     parser.add_argument("-p", "--port", default=5000, type=int, help="Port where the server will run. By default it's 5000.")
     parser.add_argument("-db", "--database", default='sqlite:///ImageServer.db')
+    parser.add_argument("-mu", "--media_url", default=None)
+    parser.add_argument("-mp", "--media_path", default=None)
 
     main(parser.parse_args())
