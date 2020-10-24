@@ -21,6 +21,8 @@ class ImageServer(object):
             media_path = str(pathlib.Path().absolute()) + "/www"
         if not media_url:
             media_url = media_path
+        ImageServer.media_path = media_path
+        ImageServer.media_url = media_url
         # Start the server
         ImageServer.app.run(host=host, port=port)
 
