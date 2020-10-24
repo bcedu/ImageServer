@@ -21,8 +21,10 @@ class ImageServer(object):
     @app.route('/image/<string:id>', methods=['GET'])
     def get_image(id):
         res = Image.query.filter(Image.id == id).first()
+        if not res:
+            return ImageServer.get_404()
         fullpath = res.path
-        resp = make_response(open(fullpath).read())
+        resp = make_response(open(fullpath, 'rb').read())
         resp.content_type = "image/jpeg"
         return resp
 
@@ -30,14 +32,23 @@ class ImageServer(object):
     @app.route('/random_image', methods=['GET'])
     def get_random_image():
         res = Image.query.all()
+        if not res:
+            return ImageServer.get_404()
         return ImageServer.get_image(random.choice(res).id)
 
     @staticmethod
     @app.route('/random_image/<string:tag>', methods=['GET'])
     def get_random_image_by_tag(tag):
-        res = Image.query.filter(tag in Image.tags)
+        search = "%{}%".format(tag)
+        res = Image.query.filter(Image.tags.like(search)).all()
+        if not res:
+            return ImageServer.get_404()
         return ImageServer.get_image(random.choice(res).id)
 
+    @staticmethod
+    def get_404():
+        res = Image.query.filter(Image.name == "404-not-found.jpg").first()
+        return ImageServer.get_image(res.id)
 
 def main(args):
     ImageServer(args.host, args.port, args.database)
