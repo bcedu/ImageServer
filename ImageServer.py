@@ -46,11 +46,11 @@ class ImageServer(object):
 
         secret = ImageServer.md5_secret
         url = img_url
-        secure_link = f"{secret}{url}{expiry}".encode('utf-8')
+        secure_link = f"{expiry}{url} {secret}".encode('utf-8')
         hash = hashlib.md5(secure_link).digest()
         base64_hash = base64.urlsafe_b64encode(hash)
         str_hash = base64_hash.decode('utf-8').rstrip('=')
-        return f"{url}?st={str_hash}&e={expiry}"
+        return f"{url}?md5={str_hash}&expires={expiry}"
 
     @staticmethod
     def build_media_url(image):
@@ -104,7 +104,7 @@ class ImageServer(object):
 
 
 def main(args):
-    ImageServer(args.host, args.port, args.database, media_path=args.media_path, media_url=args.media_url)
+    ImageServer(args.host, args.port, args.database, media_path=args.media_path, media_url=args.media_url, md5_secret=args.md5_secret, md5_expire_time=args.md5_expire_time)
 
 
 if __name__ == "__main__":
@@ -116,5 +116,4 @@ if __name__ == "__main__":
     parser.add_argument("-mp", "--media_path", default=None)
     parser.add_argument("-md5s", "--md5_secret", default=None)
     parser.add_argument("-md5e", "--md5_expire_time", type=bool, default=False)
-
     main(parser.parse_args())
