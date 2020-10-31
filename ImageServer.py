@@ -4,6 +4,10 @@ from database import setup_db
 from models import Image
 import random
 import pathlib
+import base64
+import hashlib
+import calendar
+import datetime
 
 
 class ImageServer(object):
@@ -13,8 +17,10 @@ class ImageServer(object):
     db = None
     media_path = None
     media_url = None
+    md5_secret = None
+    md5_expire_time = False
 
-    def __init__(self, host, port, db_uri, media_path=None, media_url=None):
+    def __init__(self, host, port, db_uri, media_path=None, media_url=None, md5_secret=None, md5_expire_time=False):
         # setup db
         db = setup_db(uri=db_uri)
         if not media_path:
@@ -23,12 +29,34 @@ class ImageServer(object):
             media_url = media_path
         ImageServer.media_path = media_path
         ImageServer.media_url = media_url
+        ImageServer.md5_secret = md5_secret
+        ImageServer.md5_expire_time = md5_expire_time
         # Start the server
         ImageServer.app.run(host=host, port=port)
 
     @staticmethod
+    def get_secure_url(img_url):
+        if not ImageServer.md5_secret:
+            return img_url
+
+        expiry = ""
+        if ImageServer.md5_expire_time:
+            future = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+            expiry = calendar.timegm(future.timetuple())
+
+        secret = ImageServer.md5_secret
+        url = img_url
+        secure_link = f"{secret}{url}{expiry}".encode('utf-8')
+        hash = hashlib.md5(secure_link).digest()
+        base64_hash = base64.urlsafe_b64encode(hash)
+        str_hash = base64_hash.decode('utf-8').rstrip('=')
+        return f"{url}?st={str_hash}&e={expiry}"
+
+    @staticmethod
     def build_media_url(image):
-        return image.path.replace(ImageServer.media_path, ImageServer.media_url)
+        img_url = image.path.replace(ImageServer.media_path, ImageServer.media_url)
+        img_url = ImageServer.get_secure_url(img_url)
+        return img_url
 
     @staticmethod
     @app.route('/image/<string:id>', methods=['GET'])
@@ -86,5 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("-db", "--database", default='sqlite:///ImageServer.db')
     parser.add_argument("-mu", "--media_url", default=None)
     parser.add_argument("-mp", "--media_path", default=None)
+    parser.add_argument("-md5s", "--md5_secret", default=None)
+    parser.add_argument("-md5e", "--md5_expire_time", type=bool, default=False)
 
     main(parser.parse_args())
